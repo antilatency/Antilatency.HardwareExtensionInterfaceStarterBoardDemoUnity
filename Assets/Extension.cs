@@ -82,7 +82,7 @@ public class Extension : MonoBehaviour
                         break;
                     }
                 }
-                ErrorNote.SetText($"Invalid Note! Connect the proper device.");
+                ErrorNote.SetText($"Invalid Node! Connect the proper device.");
                 Thread.Sleep(100);
 
                 yield return null;
