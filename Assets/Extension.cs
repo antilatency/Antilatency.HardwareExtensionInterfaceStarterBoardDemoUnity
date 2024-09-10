@@ -13,7 +13,6 @@ using Antilatency.HardwareExtensionInterface.Interop;
 using TMPro;
 
 public class Extension : MonoBehaviour
-
 {
     public TMP_Text Text;
     public TMP_Text ErrorNote;
@@ -45,29 +44,31 @@ public class Extension : MonoBehaviour
                 {
                     targetNode = node;
                     break;
-                    
                 }
             }
+            ErrorNote.SetText($"Invalid Node or Tag! Connect the proper device.");
+            //Thread.Sleep(100);
             Debug.Log($"Nodes count {supportedNodes.Length}");
             Thread.Sleep(100);
             yield return null;
         }
-            IOPins conf;
-            var cotask = cotaskConstructor.startTask(network, targetNode);
 
-            var side = SideCheck(cotask);
-        
-            conf = Config(side);
-            SideText.SetText("Side:" + side.ToString());
-            cotask.Dispose();
-       
+        IOPins conf;
+        var cotask = cotaskConstructor.startTask(network, targetNode);
+
+        var side = SideCheck(cotask);
+
+        conf = Config(side);
+        SideText.SetText("Side:" + side.ToString());
+        cotask.Dispose();
+
         while (true)
         {
             cotask = cotaskConstructor.startTask(network, targetNode);
             Debug.Log("Side:" + side);
             ErrorNote.ClearMesh();
             yield return Run(cotask, conf);
-           
+
             targetNode = Antilatency.DeviceNetwork.NodeHandle.Null;
 
             while (targetNode == Antilatency.DeviceNetwork.NodeHandle.Null)
@@ -90,26 +91,26 @@ public class Extension : MonoBehaviour
             yield return null;
         }
     }
-        public enum Sides
-        {
-            TOP,
-            BOTTOM,
-            NoConnection,
-            ShortCircuit
 
-        }
+    public enum Sides
+    {
+        TOP,
+        BOTTOM,
+        NoConnection,
+        ShortCircuit
+    }
 
-        struct IOPins
-        {
-            public Pins H_AXIS;
-            public Pins V_AXIS;
-            public Pins STATUS1;
-            public Pins STATUS2;
-            public Pins FUNC1;
-            public Pins FUNC2;
-            public Pins CLICK;
+    struct IOPins
+    {
+        public Pins H_AXIS;
+        public Pins V_AXIS;
+        public Pins STATUS1;
+        public Pins STATUS2;
+        public Pins FUNC1;
+        public Pins FUNC2;
+        public Pins CLICK;
+    }
 
-        }
     static Sides SideCheck(Antilatency.HardwareExtensionInterface.ICotask cotask)
     {
         using var button1 = cotask.createInputPin(Pins.IO1);
@@ -139,78 +140,73 @@ public class Extension : MonoBehaviour
         Console.WriteLine("No Connection");
         return Sides.NoConnection;
     }
+
     static IOPins Config(Sides side)
+    {
+        var iOPins = new IOPins();
+        switch (side)
         {
-            var iOPins = new IOPins();
-            switch (side)
-            {
-                case Sides.TOP:
-                    iOPins.STATUS1 = Pins.IO6;
-                    iOPins.STATUS2 = Pins.IO1;
-                    iOPins.FUNC1 = Pins.IO5;
-                    iOPins.FUNC2 = Pins.IO2;
-                    iOPins.H_AXIS = Pins.IOA4;
-                    iOPins.V_AXIS = Pins.IOA3;
-                    iOPins.CLICK = Pins.IO7;
-                    break;
-                case Sides.BOTTOM:
-                    iOPins.STATUS1 = Pins.IO1;
-                    iOPins.STATUS2 = Pins.IO6;
-                    iOPins.FUNC1 = Pins.IO2;
-                    iOPins.FUNC2 = Pins.IO5;
-                    iOPins.H_AXIS = Pins.IOA3;
-                    iOPins.V_AXIS = Pins.IOA4;
-                    iOPins.CLICK = Pins.IO8;
-                    break;
-                case Sides.NoConnection: break;
-                case Sides.ShortCircuit: break;
-
-            }
-            return iOPins;
+            case Sides.TOP:
+                iOPins.STATUS1 = Pins.IO6;
+                iOPins.STATUS2 = Pins.IO1;
+                iOPins.FUNC1 = Pins.IO5;
+                iOPins.FUNC2 = Pins.IO2;
+                iOPins.H_AXIS = Pins.IOA4;
+                iOPins.V_AXIS = Pins.IOA3;
+                iOPins.CLICK = Pins.IO7;
+                break;
+            case Sides.BOTTOM:
+                iOPins.STATUS1 = Pins.IO1;
+                iOPins.STATUS2 = Pins.IO6;
+                iOPins.FUNC1 = Pins.IO2;
+                iOPins.FUNC2 = Pins.IO5;
+                iOPins.H_AXIS = Pins.IOA3;
+                iOPins.V_AXIS = Pins.IOA4;
+                iOPins.CLICK = Pins.IO8;
+                break;
+            case Sides.NoConnection: break;
+            case Sides.ShortCircuit: break;
         }
+        return iOPins;
+    }
 
-        IEnumerator Run(Antilatency.HardwareExtensionInterface.ICotask cotask, IOPins conf)
+    IEnumerator Run(Antilatency.HardwareExtensionInterface.ICotask cotask, IOPins conf)
+    {
+        using var ledRed = cotask.createPwmPin(conf.STATUS1, 1000, 0f);
+        using var ledGreen = cotask.createOutputPin(conf.STATUS2, PinState.High);
+        using var hAxis = cotask.createAnalogPin(conf.H_AXIS, 10);
+        using var vAxis = cotask.createAnalogPin(conf.V_AXIS, 10);
+        using var func1 = cotask.createInputPin(conf.FUNC1);
+        using var func2 = cotask.createInputPin(conf.FUNC2);
+        using var click = cotask.createInputPin(conf.CLICK);
+
+        cotask.run();
+
+        while (!cotask.isTaskFinished())
         {
-            using var ledRed = cotask.createPwmPin(conf.STATUS1, 1000, 0f);
-            using var ledGreen = cotask.createOutputPin(conf.STATUS2, PinState.High);
-            using var Haxis = cotask.createAnalogPin(conf.H_AXIS, 10);
-            using var Vaxis = cotask.createAnalogPin(conf.V_AXIS, 10);
-            using var FUNC1 = cotask.createInputPin(conf.FUNC1);
-            using var FUNC2 = cotask.createInputPin(conf.FUNC2);
-            using var CLICK = cotask.createInputPin(conf.CLICK);
-        
-            cotask.run();
+            Text.SetText($"hAxis: {hAxis.getValue():f2}  vAxis {vAxis.getValue():f2}  func1: {func1.getState(),-5} func2: {func2.getState(),-5} click: {click.getState(),-5}");
 
-            while (!cotask.isTaskFinished())
-            {
-                Text.SetText($"HAxis: {Math.Round(Haxis.getValue(), 2),-5} VAxis {Math.Round(Vaxis.getValue(), 2),-5} FUNC1: {FUNC1.getState(),-5} FUNC2: {FUNC2.getState(),-5} CLICK: {CLICK.getState(),-5}");
-                
-                ledRed.setDuty(Haxis.getValue() * 0.4f);
+            ledRed.setDuty(hAxis.getValue() * 0.4f);
 
-            if (Vaxis.getValue() >= 2)
+            if (vAxis.getValue() >= 2)
             {
                 ledGreen.setState(PinState.High);
             }
             else ledGreen.setState(PinState.Low);
 
             yield return new WaitForSeconds(0.01f);
-
-            }
-            cotask.Dispose();
-
         }
-        // Start is called before the first frame update
-        void Start()
-        {
+        cotask.Dispose();
+    }
+
+    // Start is called before the first frame update
+    void Start()
+    {
         StartCoroutine(Fade());
-
     }
 
-        // Update is called once per frame
-        void Update()
-        {
-
-
+    // Update is called once per frame
+    void Update()
+    {
     }
-    }
-
+}
